@@ -26,7 +26,7 @@ Programación Orientada a Objetos (POO)
 
 Clona este repositorio:
 
-git clone git@github.com:tu_usuario/nombre_del_repositorio.git
+[git clone git@github.com:tu_usuario/nombre_del_repositorio.git](https://github.com/RafaelJuniorGutierrezBernal/ActividadNro2.git)
 
 Accede al directorio del proyecto:
 
