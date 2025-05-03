@@ -102,11 +102,11 @@ class ArbolBinario:
         if str(nodo.clave).startswith(prefijo):
             resultados.append(nodo.valor)
             
-        # Si el prefijo es menor que la clave, buscar en el subárbol izquierdo
+        # Si el prefijo es menor que la clave, buscar en el subarbol izquierdo
         if prefijo < nodo.clave:
             self._buscar_prefijo_recursivo(nodo.izquierda, prefijo, resultados)
             
-        # También buscar en el subárbol derecho si puede contener claves con el prefijo
+        # También buscar en el subarbol derecho si puede contener claves con el prefijo
         if prefijo <= nodo.clave:
             self._buscar_prefijo_recursivo(nodo.derecha, prefijo, resultados)
     
@@ -143,7 +143,7 @@ class ArbolBinario:
                 return nodo.izquierda
                 
             # Caso 2: Nodo con dos hijos
-            # Encontrar el sucesor (nodo más pequeño en el subárbol derecho)
+            # Encontrar el sucesor (nodo mas pequeño en el subarbol derecho)
             sucesor = self._encontrar_minimo(nodo.derecha)
             nodo.clave = sucesor.clave
             nodo.valor = sucesor.valor
@@ -151,7 +151,7 @@ class ArbolBinario:
             # Eliminar el sucesor
             nodo.derecha = self._eliminar_recursivo(nodo.derecha, sucesor.clave, [True])
         
-        # Si el árbol solo tenía un nodo, retornar
+        # Si el arbol solo tenía un nodo retornar
         if nodo is None:
             return nodo
             

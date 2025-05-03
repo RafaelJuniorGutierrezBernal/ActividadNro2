@@ -1,12 +1,63 @@
 # Sistema de Gestión de Biblioteca
+## 1. Guía de Instalación y Ejecución
 
-## 1. Comprensión y Diseño del Modelo
+### 1.1 Requisitos del Sistema
 
-### 1.1 Descripción General
+- Python 3.6 o superior
+- No se requieren bibliotecas externas adicionales (solo se utilizan módulos de la biblioteca estándar de Python)
+
+### 1.2 Instrucciones de Instalación
+
+1. **Descomprimir el archivo**: 
+   - Descomprima el archivo ZIP que contiene el proyecto en cualquier ubicación de su sistema.
+
+2. **Estructura de directorios**:
+   - Verifique que la estructura de directorios sea la siguiente:
+     ```
+     biblioteca/
+     ├── src/
+     │   ├── controllers/
+     │   │   └── Biblioteca.py
+     │   ├── models/
+     │   │   ├── ArbolBinario.py
+     │   │   ├── Libro.py
+     │   │   ├── Prestamo.py
+     │   │   └── Usuario.py
+     │   ├── utils/
+     │   │   └── Persistencia.py
+     │   └── main.py
+     ├── datos/        # Se creará automáticamente en la primera ejecución
+     └── documentacion.md
+     ```
+
+### 1.3 Ejecución del Programa
+
+1. **Abrir terminal o línea de comandos**:
+   - Navegue al directorio del proyecto: `cd ruta/a/biblioteca`
+
+2. **Ejecutar el programa principal**:
+   - Ejecute el comando: `python src/main.py`
+   - En Windows también puede usar: `python src\main.py`
+
+3. **Primera ejecución**:
+   - En la primera ejecución, el sistema creará automáticamente el directorio `datos/` para almacenar la información.
+   - No es necesario realizar ninguna configuración adicional.
+
+### 1.4 Notas Importantes
+
+- **Persistencia de datos**: Todos los datos se guardan automáticamente en archivos JSON dentro del directorio `datos/`.
+- **Compatibilidad**: El sistema funciona en Windows, macOS y Linux sin modificaciones.
+- **Problemas comunes**:
+  - Si aparece un error de "Módulo no encontrado", asegúrese de ejecutar el programa desde el directorio raíz del proyecto.
+  - Los datos se guardan automáticamente después de cada operación importante, pero también puede usar la opción "Guardar datos" del menú principal.
+
+## 2. Comprensión y Diseño del Modelo
+
+### 2.1 Descripción General
 
 El sistema de gestión de biblioteca es una aplicación que permite administrar libros, usuarios y préstamos en una biblioteca. El sistema se ha diseñado para ser eficiente, escalable y fácil de usar.
 
-### 1.2 Estructuras de Datos Utilizadas
+### 2.2 Estructuras de Datos Utilizadas
 
 #### Estructuras Lineales
 - **Diccionarios (mapas)**: Para almacenamiento principal de libros, usuarios y préstamos, ofreciendo acceso O(1) por clave.
@@ -22,7 +73,7 @@ El sistema de gestión de biblioteca es una aplicación que permite administrar 
   - Árbol de correos electrónicos
   - Árbol de teléfonos
 
-### 1.3 Requerimientos Funcionales
+### 2.3 Requerimientos Funcionales
 
 1. **Gestión de Libros**
    - Agregar nuevos libros
@@ -50,7 +101,7 @@ El sistema de gestión de biblioteca es una aplicación que permite administrar 
    - Búsquedas avanzadas utilizando árboles binarios
    - Visualización de estadísticas
 
-### 1.4 Requerimientos No Funcionales
+### 2.4 Requerimientos No Funcionales
 
 1. **Eficiencia**
    - Búsquedas rápidas con complejidad O(log n) utilizando árboles binarios balanceados
@@ -74,9 +125,9 @@ El sistema de gestión de biblioteca es una aplicación que permite administrar 
    - Clases con responsabilidades bien definidas
    - Documentación completa del código
 
-## 2. Elección de Árboles Adecuados
+## 3. Elección de Árboles Adecuados
 
-### 2.1 Tipo de Árbol Seleccionado: Árbol Binario de Búsqueda AVL
+### 3.1 Tipo de Árbol Seleccionado: Árbol Binario de Búsqueda AVL
 
 Para este sistema, se ha seleccionado el **Árbol Binario de Búsqueda AVL** como estructura principal para las operaciones de búsqueda. Esta decisión se basa en las siguientes consideraciones:
 
@@ -113,7 +164,7 @@ Para este sistema, se ha seleccionado el **Árbol Binario de Búsqueda AVL** com
    - No soportan directamente búsquedas por rango o prefijo
    - No mantienen un orden natural de los elementos
 
-### 2.2 Justificación por Caso de Uso
+### 3.2 Justificación por Caso de Uso
 
 1. **Búsqueda de libros por título/autor**:
    - Los usuarios frecuentemente buscan libros conociendo parte del título o autor
@@ -129,9 +180,9 @@ Para este sistema, se ha seleccionado el **Árbol Binario de Búsqueda AVL** com
    - El árbol AVL ofrece una solución unificada que también soporta las búsquedas por prefijo
    - La diferencia de rendimiento es mínima para la escala de datos esperada en una biblioteca
 
-## 3. Implementación de Operaciones con Árboles
+## 4. Implementación de Operaciones con Árboles
 
-### 3.1 Estructura del Árbol AVL
+### 4.1 Estructura del Árbol AVL
 
 Se ha implementado un árbol AVL completo con las siguientes características:
 
@@ -157,7 +208,7 @@ class ArbolBinario:
     # ...
 ```
 
-### 3.2 Operaciones Principales Implementadas
+### 4.2 Operaciones Principales Implementadas
 
 1. **Inserción con Balanceo**
    - Complejidad: O(log n)
@@ -179,7 +230,7 @@ class ArbolBinario:
    - Complejidad: O(n)
    - Obtiene elementos ordenados por clave
 
-### 3.3 Integración con el Sistema de Biblioteca
+### 4.3 Integración con el Sistema de Biblioteca
 
 Los árboles se han integrado en la clase `Biblioteca` para mejorar las búsquedas:
 
@@ -220,9 +271,9 @@ def buscar_libro(self, criterio, valor):
         # ...
 ```
 
-## 4. Integración y Pruebas
+## 5. Integración y Pruebas
 
-### 4.1 Integración con el Sistema
+### 5.1 Integración con el Sistema
 
 La integración de los árboles binarios con el resto del sistema se ha realizado de forma modular:
 
@@ -231,7 +282,7 @@ La integración de los árboles binarios con el resto del sistema se ha realizad
 3. **Capa de Persistencia**: Clase `Persistencia` que se encarga de guardar/cargar datos en archivos
 4. **Capa de Interface**: Menú interactivo en consola que expone todas las funcionalidades
 
-### 4.2 Pruebas Realizadas
+### 5.2 Pruebas Realizadas
 
 #### Pruebas de Funcionalidad Básica
 - Agregar libros y verificar que se indexan correctamente en los árboles
@@ -248,9 +299,9 @@ La integración de los árboles binarios con el resto del sistema se ha realizad
 - Cargar datos y comprobar que los objetos, índices y árboles se reconstruyen adecuadamente
 - Simular fallos y verificar la gestión de errores
 
-## 5. Optimización y Eficiencia
+## 6. Optimización y Eficiencia
 
-### 5.1 Análisis de Rendimiento
+### 6.1 Análisis de Rendimiento
 
 El uso de árboles AVL ha mejorado significativamente el rendimiento de las búsquedas en comparación con los métodos lineales:
 
@@ -265,7 +316,7 @@ Donde:
 - n es el número total de elementos
 - k es el número de resultados que coinciden con el prefijo
 
-### 5.2 Optimizaciones Aplicadas
+### 6.2 Optimizaciones Aplicadas
 
 1. **Índice dual**: Mantener tanto diccionarios como árboles para diferentes tipos de búsquedas
    - Diccionarios para acceso directo por clave principal (O(1))
@@ -284,7 +335,7 @@ Donde:
    - Reduce operaciones de rotación innecesarias
    - Mantiene rendimiento óptimo con menos sobrecarga
 
-### 5.3 Compromiso de Almacenamiento vs. Rendimiento
+### 6.3 Compromiso de Almacenamiento vs. Rendimiento
 
 La implementación actual duplica algunos datos (en diccionarios y árboles) para optimizar diferentes tipos de búsquedas. Este es un compromiso consciente:
 
@@ -293,7 +344,7 @@ La implementación actual duplica algunos datos (en diccionarios y árboles) par
 
 Para una biblioteca típica (miles o decenas de miles de libros), el incremento en el uso de memoria es aceptable considerando la mejora en rendimiento de búsqueda.
 
-## 6. Menú Interactivo
+## 7. Menú Interactivo
 
 Se ha implementado un menú interactivo completo que permite acceder a todas las funcionalidades del sistema:
 
@@ -314,7 +365,7 @@ Se ha implementado un menú interactivo completo que permite acceder a todas las
 ╚══════════════════════════╝
 ```
 
-### 6.1 Opciones de Búsqueda
+### 7.1 Opciones de Búsqueda
 
 El menú incluye opciones específicas para realizar búsquedas utilizando los árboles binarios:
 
@@ -334,9 +385,9 @@ La opción "Búsqueda por prefijo" permite aprovechar directamente la eficiencia
 3. Nombres de usuarios que comienzan con...
 ```
 
-## 7. Sistema de Persistencia
+## 8. Sistema de Persistencia
 
-### 7.1 Almacenamiento en Archivos JSON
+### 8.1 Almacenamiento en Archivos JSON
 
 Se ha implementado un sistema completo de persistencia que permite guardar y cargar todos los datos de la biblioteca en archivos JSON:
 
@@ -345,7 +396,7 @@ Se ha implementado un sistema completo de persistencia que permite guardar y car
 - **prestamos.json**: Almacena información de todos los préstamos
 - **contadores.json**: Almacena contadores globales (como IDs)
 
-### 7.2 Clases de Serialización
+### 8.2 Clases de Serialización
 
 Cada clase del modelo (`Libro`, `Usuario`, `Prestamo`) implementa métodos para convertirse a/desde diccionarios:
 
@@ -366,7 +417,7 @@ def from_dict(cls, datos):
     # ...
 ```
 
-### 7.3 Gestión de Persistencia
+### 8.3 Gestión de Persistencia
 
 La clase `Persistencia` se encarga de todas las operaciones de guardado/carga:
 
@@ -386,7 +437,7 @@ class Persistencia:
         # ...
 ```
 
-### 7.4 Reconstrucción de Estructuras
+### 8.4 Reconstrucción de Estructuras
 
 Al cargar datos, se reconstruyen tanto los índices como los árboles:
 
@@ -403,29 +454,29 @@ def _reconstruir_indices(self, biblioteca):
     # ...
 ```
 
-## 8. Conclusiones
+## 9. Conclusiones
 
-### 8.1 Logros del Proyecto
+### 9.1 Logros del Proyecto
 
 - Implementación exitosa de árboles binarios de búsqueda AVL para mejorar la eficiencia de las búsquedas
 - Integración completa con el sistema de gestión de biblioteca existente
 - Desarrollo de un sistema de persistencia robusto para mantener los datos entre sesiones
 - Creación de una interfaz de usuario mejorada con nuevas opciones de búsqueda
 
-### 8.2 Beneficios de Usar Árboles
+### 9.2 Beneficios de Usar Árboles
 
 - Búsquedas significativamente más rápidas, especialmente para conjuntos grandes de datos
 - Soporte para búsquedas por prefijo, mejorando la experiencia del usuario
 - Mantenimiento de un rendimiento consistente independientemente del crecimiento de datos
 
-### 8.3 Posibles Mejoras Futuras
+### 9.3 Posibles Mejoras Futuras
 
 - Implementar más tipos de búsquedas avanzadas (por ejemplo, búsqueda por rango de fechas en préstamos)
 - Desarrollar una interfaz gráfica para mejorar la usabilidad
 - Optimizar el uso de memoria mediante estructuras de datos más compactas
 - Implementar estrategias de caché para búsquedas frecuentes
 
-## 9. Referencias Bibliográficas
+## 10. Referencias Bibliográficas
 
 1. Fritelli, V., Guzman, A., & Tymoschuk, J. (2020). *Algoritmos y estructuras de datos* (2a. ed.). Jorge Sarmiento Editor - Universitas.
 
