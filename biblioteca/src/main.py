@@ -4,6 +4,10 @@ from models.Usuario import Usuario
 from models.Prestamo import Prestamo
 
 def main():
+    """
+    Función principal que inicia el sistema de biblioteca.
+    """
+    print("🏛️ Iniciando Sistema de Biblioteca Virtual")
     biblioteca = Biblioteca()
     biblioteca.mostrar_menu()
 

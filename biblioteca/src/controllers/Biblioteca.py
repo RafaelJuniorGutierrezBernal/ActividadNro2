@@ -1,26 +1,110 @@
 import re
 import unicodedata
 from datetime import datetime
+from models.ArbolBinario import ArbolBinario
+from utils.Persistencia import Persistencia
 
 class Biblioteca:
-    def __init__(self):
-        self.libros = []
-        self.usuarios = []
-        self.prestamos = []
+    def __init__(self, cargar_datos=True):
+        # Cambio de listas a diccionarios
+        self.libros = {}  # ISBN como clave
+        self.usuarios = {}  # Correo como clave
+        self.prestamos = {}  # ID generado como clave
+        # Índices secundarios para búsquedas
+        self.libros_por_titulo = {}  # Título normalizado a lista de ISBNs
+        self.libros_por_autor = {}  # Autor normalizado a lista de ISBNs
+        self.usuarios_por_nombre = {}  # Nombre normalizado a lista de correos
+        self.usuarios_por_telefono = {}  # Teléfono a correo
+        # Árboles binarios para búsquedas rápidas
+        self.arbol_titulos = ArbolBinario()  # Árbol ordenado por título normalizado
+        self.arbol_autores = ArbolBinario()  # Árbol ordenado por autor normalizado
+        self.arbol_isbn = ArbolBinario()     # Árbol ordenado por ISBN
+        self.arbol_nombres = ArbolBinario()  # Árbol ordenado por nombre normalizado
+        self.arbol_correos = ArbolBinario()  # Árbol ordenado por correo
+        self.arbol_telefonos = ArbolBinario() # Árbol ordenado por teléfono
+        self.id_prestamo = 0  # Contador para generar IDs únicos
+        
+        # Sistema de persistencia
+        self.persistencia = Persistencia()
+        
+        # Cargar datos si es necesario
+        if cargar_datos:
+            self.cargar_datos()
 
     def normalizar_texto(self, texto):
         """Convierte el texto a minúsculas y elimina tildes para búsquedas."""
+        if texto is None:
+            return ""
         texto = texto.lower()
         return ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
 
+    def _actualizar_indices_libro(self, libro):
+        """Actualiza los índices secundarios para un libro."""
+        if libro is None or not hasattr(libro, 'isbn') or not libro.isbn:
+            return False
+            
+        titulo_normalizado = self.normalizar_texto(libro.titulo)
+        autor_normalizado = self.normalizar_texto(libro.autor)
+        
+        # Actualizar índice por título (diccionario)
+        if titulo_normalizado not in self.libros_por_titulo:
+            self.libros_por_titulo[titulo_normalizado] = []
+        if libro.isbn not in self.libros_por_titulo[titulo_normalizado]:
+            self.libros_por_titulo[titulo_normalizado].append(libro.isbn)
+            
+        # Actualizar índice por autor (diccionario)
+        if autor_normalizado not in self.libros_por_autor:
+            self.libros_por_autor[autor_normalizado] = []
+        if libro.isbn not in self.libros_por_autor[autor_normalizado]:
+            self.libros_por_autor[autor_normalizado].append(libro.isbn)
+            
+        # Actualizar árboles binarios para búsqueda rápida
+        self.arbol_titulos.insertar(titulo_normalizado, libro.isbn)
+        self.arbol_autores.insertar(autor_normalizado, libro.isbn)
+        self.arbol_isbn.insertar(libro.isbn, libro)
+        
+        return True
+
+    def _actualizar_indices_usuario(self, usuario):
+        """Actualiza los índices secundarios para un usuario."""
+        if usuario is None or not hasattr(usuario, 'correoU') or not usuario.correoU:
+            return False
+            
+        nombre_normalizado = self.normalizar_texto(usuario.nombre)
+        telefono_limpio = usuario.numeroTelefono.replace(" ", "").replace("-", "") if usuario.numeroTelefono else ""
+        
+        # Actualizar índice por nombre (diccionario)
+        if nombre_normalizado not in self.usuarios_por_nombre:
+            self.usuarios_por_nombre[nombre_normalizado] = []
+        if usuario.correoU not in self.usuarios_por_nombre[nombre_normalizado]:
+            self.usuarios_por_nombre[nombre_normalizado].append(usuario.correoU)
+            
+        # Actualizar índice por teléfono (diccionario)
+        if telefono_limpio:
+            self.usuarios_por_telefono[telefono_limpio] = usuario.correoU
+            
+        # Actualizar árboles binarios para búsqueda rápida
+        self.arbol_nombres.insertar(nombre_normalizado, usuario.correoU)
+        self.arbol_correos.insertar(usuario.correoU.lower(), usuario)
+        if telefono_limpio:
+            self.arbol_telefonos.insertar(telefono_limpio, usuario.correoU)
+        
+        return True
+
     def agregar_libro(self, libro):
-        if not libro.titulo.strip() or len(libro.titulo) < 2:
+        if libro is None:
+            print("❌ Error: El libro no puede ser nulo.")
+            return False
+            
+        if not libro.titulo or not libro.titulo.strip() or len(libro.titulo) < 2:
             print("❌ Error: El título del libro no puede estar vacío o tener un solo carácter.")
             return False
-        if not libro.autor.strip() or len(libro.autor) < 2:
+            
+        if not libro.autor or not libro.autor.strip() or len(libro.autor) < 2:
             print("❌ Error: El autor del libro no puede estar vacío o tener un solo carácter.")
             return False
-        if not libro.isbn.strip():
+            
+        if not libro.isbn or not libro.isbn.strip():
             print("❌ Error: El ISBN no puede estar vacío.")
             return False
         
@@ -29,7 +113,7 @@ class Biblioteca:
             return False
             
         # Verificar si ya existe un libro con el mismo ISBN
-        if any(l.isbn == libro.isbn for l in self.libros):
+        if libro.isbn in self.libros:
             print(f"❌ Error: Ya existe un libro con el ISBN {libro.isbn}.")
             return False
 
@@ -37,12 +121,21 @@ class Biblioteca:
         libro.titulo_normalizado = self.normalizar_texto(libro.titulo)
         libro.autor_normalizado = self.normalizar_texto(libro.autor)
 
-        self.libros.append(libro)
+        # Guardar libro en diccionario principal
+        self.libros[libro.isbn] = libro
+        
+        # Actualizar índices secundarios
+        self._actualizar_indices_libro(libro)
+        
         print(f"✅ Libro '{libro.titulo}' agregado correctamente.")
         return True
         
     def validar_isbn(self, isbn):
         """Valida que el ISBN tenga un formato correcto (10 o 13 dígitos)."""
+        if isbn is None:
+            print("❌ Error: El ISBN no puede ser nulo.")
+            return False
+            
         isbn = isbn.replace("-", "").replace(" ", "")  # Eliminar guiones y espacios
         
         if not isbn.isdigit():
@@ -57,12 +150,16 @@ class Biblioteca:
 
     def registrar_usuario(self, usuario):
         try:
-            if not usuario.nombre.strip() or len(usuario.nombre) < 2:
+            if usuario is None:
+                print("❌ Error: El usuario no puede ser nulo.")
+                return False
+                
+            if not usuario.nombre or not usuario.nombre.strip() or len(usuario.nombre) < 2:
                 print("❌ Error: El nombre no puede estar vacío o tener un solo carácter.")
                 return False
                 
             # Validar teléfono y correo
-            if not self.validar_telefono(usuario.telefono):
+            if not self.validar_telefono(usuario.numeroTelefono):
                 return False
                 
             if not self.validar_correo(usuario.correoU):
@@ -70,14 +167,19 @@ class Biblioteca:
             
             # Verificación con versión normalizada del correo
             correo_normalizado = usuario.correoU.lower()
-            if any(u.correoU.lower() == correo_normalizado for u in self.usuarios):
+            if correo_normalizado in self.usuarios:
                 print("❌ Error: Este correo ya está registrado.")
                 return False
 
             # Guardamos la versión normalizada para búsquedas futuras
             usuario.nombre_normalizado = self.normalizar_texto(usuario.nombre)
 
-            self.usuarios.append(usuario)
+            # Guardar usuario en diccionario principal
+            self.usuarios[correo_normalizado] = usuario
+            
+            # Actualizar índices secundarios
+            self._actualizar_indices_usuario(usuario)
+            
             print(f"✅ Usuario '{usuario.nombre}' registrado correctamente.")
             return True
         except ValueError as e:
@@ -85,7 +187,7 @@ class Biblioteca:
             return False
 
     def mostrar_libros_disponibles(self):
-        libros_disponibles = [libro for libro in self.libros if libro.disponibilidad()]
+        libros_disponibles = [libro for libro in self.libros.values() if libro.disponibilidad()]
         if not libros_disponibles:
             print("📚 No hay libros disponibles en la biblioteca.")
         else:
@@ -98,22 +200,30 @@ class Biblioteca:
             print("👤 No hay usuarios registrados.")
         else:
             print("👤 Usuarios registrados:")
-            for i, usuario in enumerate(self.usuarios, 1):
+            for i, usuario in enumerate(self.usuarios.values(), 1):
                 print(f"{i}. {usuario}")
                 
     def prestar_libro(self, usuario, libro):
+        if usuario is None:
+            print("❌ Error: El usuario no puede ser nulo.")
+            return False
+            
+        if libro is None:
+            print("❌ Error: El libro no puede ser nulo.")
+            return False
+            
         # Validar que el usuario exista en el sistema
-        if usuario not in self.usuarios:
+        if usuario.correoU not in self.usuarios:
             print("❌ Error: El usuario no está registrado en la biblioteca.")
             return False
 
         # Validar que el libro exista en el sistema
-        if libro not in self.libros:
+        if libro.isbn not in self.libros:
             print("❌ Error: El libro no está disponible en la biblioteca.")
             return False
 
         # Validar explícitamente la disponibilidad del libro
-        if not libro.disponible:
+        if not self.libros[libro.isbn].disponible:
             print("❌ Error: El libro ya está prestado.")
             return False
             
@@ -125,18 +235,35 @@ class Biblioteca:
         from models.Prestamo import Prestamo  # Importación dentro del método para evitar circular imports
         prestamo = Prestamo(usuario, libro)
         
-        libro.disponible = False
+        # Generar ID único para el préstamo
+        self.id_prestamo += 1
+        prestamo_id = f"P{self.id_prestamo}"
+        
+        # Actualizar estado del libro y usuario
+        self.libros[libro.isbn].disponible = False
         usuario.libros_prestados.append(libro)
-        self.prestamos.append(prestamo)
+        
+        # Guardar préstamo en el diccionario
+        self.prestamos[prestamo_id] = prestamo
         
         print(f"📖 '{libro.titulo}' ha sido prestado a {usuario.nombre}.")
         return True
             
     def devolver_libro(self, usuario, libro):
-        # Buscar el préstamo activo
-        prestamo = next((p for p in self.prestamos if p.usuario == usuario and p.libro == libro and p.estado == "Prestado"), None)
+        if usuario is None or libro is None:
+            print("❌ Error: El usuario y el libro no pueden ser nulos.")
+            return False
+            
+        # Buscar el préstamo activo (ahora con búsqueda en diccionario)
+        prestamo_encontrado = None
+        for prestamo_id, prestamo in self.prestamos.items():
+            if (prestamo.usuario.correoU == usuario.correoU and 
+                prestamo.libro.isbn == libro.isbn and 
+                prestamo.estado == "Activo"):
+                prestamo_encontrado = prestamo
+                break
         
-        if not prestamo:
+        if not prestamo_encontrado:
             print("❌ Error: Este libro no está registrado como prestado por este usuario.")
             return False
         
@@ -145,17 +272,23 @@ class Biblioteca:
             print("❌ Error: Inconsistencia en el sistema. Contacte al administrador.")
             return False
 
-        libro.disponible = True
+        # Actualizar estado del libro y usuario
+        self.libros[libro.isbn].disponible = True
         usuario.libros_prestados.remove(libro)
         
-        prestamo.fecha_devolucion = datetime.now()
-        prestamo.estado = "Devuelto"
+        # Actualizar información del préstamo
+        prestamo_encontrado.fecha_devolucion = datetime.now()
+        prestamo_encontrado.estado = "Devuelto"
         
         print(f"✅ '{libro.titulo}' ha sido devuelto por {usuario.nombre}.")
         return True
         
     def validar_telefono(self, telefono):
         """Verifica que el número de teléfono solo contenga dígitos y tenga entre 7 y 15 caracteres."""
+        if telefono is None:
+            print("❌ Error: El número de teléfono no puede ser nulo.")
+            return False
+            
         # Eliminar espacios y guiones para la validación
         telefono_limpio = telefono.replace(" ", "").replace("-", "")
         
@@ -166,8 +299,8 @@ class Biblioteca:
 
     def validar_correo(self, correo):
         """Verifica que el correo tenga un formato válido."""
-        if not correo or not correo.strip():
-            print("❌ Error: El correo electrónico no puede estar vacío.")
+        if correo is None or not correo or not correo.strip():
+            print("❌ Error: El correo electrónico no puede estar vacío o nulo.")
             return False
             
         patron_correo = r"^[\w\.-]+@[\w\.-]+\.\w+$"
@@ -177,21 +310,186 @@ class Biblioteca:
         return False
     
     def buscar_usuario(self, criterio, valor):
-        """Busca un usuario por nombre, correo o teléfono."""
-        valor_normalizado = self.normalizar_texto(valor) if criterio == "nombre" else valor.lower()
-        
+        """Busca un usuario por nombre, correo o teléfono usando los índices y árboles binarios."""
+        if criterio is None or valor is None:
+            print("❌ Error: Los criterios de búsqueda no pueden ser nulos.")
+            return None
+            
         if criterio == "nombre":
-            return next((u for u in self.usuarios if self.normalizar_texto(u.nombre).find(valor_normalizado) != -1), None)
+            valor_normalizado = self.normalizar_texto(valor)
+            
+            # Búsqueda utilizando el árbol binario para la búsqueda por prefijos
+            correos_list = self.arbol_nombres.buscar_por_prefijo(valor_normalizado)
+            
+            if correos_list and len(correos_list) > 0:
+                # Tomar el primer correo encontrado si hay varios
+                correo = correos_list[0] if not isinstance(correos_list[0], list) else correos_list[0][0]
+                if correo in self.usuarios:
+                    return self.usuarios[correo]
+            
+            # Si no se encuentra en el árbol, buscar en el diccionario tradicional
+            usuarios_encontrados = []
+            for nombre_clave in self.usuarios_por_nombre:
+                if valor_normalizado in nombre_clave:
+                    # Para cada nombre encontrado, obtener sus correos
+                    for correo in self.usuarios_por_nombre[nombre_clave]:
+                        if correo in self.usuarios:
+                            usuarios_encontrados.append(self.usuarios[correo])
+            return usuarios_encontrados[0] if usuarios_encontrados else None
+            
         elif criterio == "correo":
-            return next((u for u in self.usuarios if u.correoU.lower() == valor_normalizado), None)
+            correo_normalizado = valor.lower()
+            
+            # Búsqueda directa en el árbol de correos
+            usuario = self.arbol_correos.buscar(correo_normalizado)
+            
+            # Si no se encuentra en el árbol, buscar en el diccionario
+            if usuario is None and correo_normalizado in self.usuarios:
+                usuario = self.usuarios[correo_normalizado]
+                
+            return usuario
+            
         elif criterio == "telefono":
             telefono_limpio = valor.replace(" ", "").replace("-", "")
-            return next((u for u in self.usuarios if u.telefono.replace(" ", "").replace("-", "") == telefono_limpio), None)
+            
+            # Búsqueda en el árbol de teléfonos
+            correo = self.arbol_telefonos.buscar(telefono_limpio)
+            
+            # Si no se encuentra en el árbol, buscar en el diccionario
+            if correo is None:
+                correo = self.usuarios_por_telefono.get(telefono_limpio)
+                
+            return self.usuarios.get(correo) if correo else None
+            
         return None
         
+    def buscar_libro(self, criterio, valor):
+        """Busca un libro por título, autor o ISBN usando los índices y árboles binarios."""
+        if criterio is None or valor is None:
+            print("❌ Error: Los criterios de búsqueda no pueden ser nulos.")
+            return []
+            
+        if criterio == "titulo":
+            valor_normalizado = self.normalizar_texto(valor)
+            
+            # Búsqueda utilizando el árbol binario para la búsqueda por prefijos
+            isbn_list = self.arbol_titulos.buscar_por_prefijo(valor_normalizado)
+            libros_encontrados = []
+            
+            # Si no se encuentra en el árbol, usar el diccionario tradicional como respaldo
+            if not isbn_list:
+                # Buscar todos los títulos que contienen la cadena normalizada
+                for titulo_clave in self.libros_por_titulo:
+                    if valor_normalizado in titulo_clave:
+                        # Para cada título encontrado, obtener sus ISBNs
+                        for isbn in self.libros_por_titulo[titulo_clave]:
+                            if isbn in self.libros:
+                                libros_encontrados.append(self.libros[isbn])
+            else:
+                # Convertir ISBNs en objetos Libro
+                for isbn in isbn_list:
+                    # Si el ISBN es una lista (múltiples libros con el mismo título)
+                    if isinstance(isbn, list):
+                        for un_isbn in isbn:
+                            if un_isbn in self.libros:
+                                libros_encontrados.append(self.libros[un_isbn])
+                    elif isbn in self.libros:
+                        libros_encontrados.append(self.libros[isbn])
+            
+            return libros_encontrados
+            
+        elif criterio == "autor":
+            valor_normalizado = self.normalizar_texto(valor)
+            
+            # Búsqueda utilizando el árbol binario para la búsqueda por prefijos
+            isbn_list = self.arbol_autores.buscar_por_prefijo(valor_normalizado)
+            libros_encontrados = []
+            
+            # Si no se encuentra en el árbol, usar el diccionario tradicional como respaldo
+            if not isbn_list:
+                # Buscar todos los autores que contienen la cadena normalizada
+                for autor_clave in self.libros_por_autor:
+                    if valor_normalizado in autor_clave:
+                        # Para cada autor encontrado, obtener sus ISBNs
+                        for isbn in self.libros_por_autor[autor_clave]:
+                            if isbn in self.libros:
+                                libros_encontrados.append(self.libros[isbn])
+            else:
+                # Convertir ISBNs en objetos Libro
+                for isbn in isbn_list:
+                    # Si el ISBN es una lista (múltiples libros con el mismo autor)
+                    if isinstance(isbn, list):
+                        for un_isbn in isbn:
+                            if un_isbn in self.libros:
+                                libros_encontrados.append(self.libros[un_isbn])
+                    elif isbn in self.libros:
+                        libros_encontrados.append(self.libros[isbn])
+            
+            return libros_encontrados
+            
+        elif criterio == "isbn":
+            isbn_limpio = valor.replace("-", "").replace(" ", "")
+            
+            # Búsqueda directa en el árbol de ISBN
+            libro = self.arbol_isbn.buscar(isbn_limpio)
+            
+            # Si no se encuentra en el árbol, buscar en el diccionario
+            if libro is None and isbn_limpio in self.libros:
+                libro = self.libros[isbn_limpio]
+                
+            return [libro] if libro else []
+            
+        return []
+        
+    def guardar_datos(self):
+        """Guarda todos los datos de la biblioteca en archivos."""
+        print("Guardando datos de la biblioteca...")
+        exito = self.persistencia.guardar_biblioteca(self)
+        if exito:
+            print("✅ Datos guardados correctamente.")
+        else:
+            print("❌ Error al guardar los datos.")
+        return exito
+    
+    def cargar_datos(self):
+        """Carga todos los datos de la biblioteca desde archivos."""
+        print("Cargando datos de la biblioteca...")
+        exito = self.persistencia.cargar_biblioteca(self)
+        if exito:
+            print("✅ Datos cargados correctamente.")
+        else:
+            print("ℹ️ No se encontraron datos previos o hubo un error al cargarlos.")
+        return exito
+        
+    def mostrar_estadisticas(self):
+        """Muestra estadísticas sobre los datos de la biblioteca."""
+        total_libros = len(self.libros)
+        libros_disponibles = sum(1 for libro in self.libros.values() if libro.disponible)
+        libros_prestados = total_libros - libros_disponibles
+        
+        total_usuarios = len(self.usuarios)
+        usuarios_con_prestamos = sum(1 for usuario in self.usuarios.values() if usuario.libros_prestados)
+        
+        total_prestamos = len(self.prestamos)
+        prestamos_activos = sum(1 for prestamo in self.prestamos.values() if prestamo.estado == "Activo")
+        prestamos_devueltos = total_prestamos - prestamos_activos
+        
+        print("\n📊 ESTADÍSTICAS DE LA BIBLIOTECA")
+        print(f"Total de libros: {total_libros}")
+        print(f"Libros disponibles: {libros_disponibles}")
+        print(f"Libros prestados: {libros_prestados}")
+        print(f"Total de usuarios: {total_usuarios}")
+        print(f"Usuarios con préstamos activos: {usuarios_con_prestamos}")
+        print(f"Total de préstamos: {total_prestamos}")
+        print(f"Préstamos activos: {prestamos_activos}")
+        print(f"Préstamos devueltos: {prestamos_devueltos}")
+
     def mostrar_menu(self):
         from models.Libro import Libro
         from models.Usuario import Usuario
+
+        # Cargar datos al iniciar
+        self.cargar_datos()
 
         while True:
             print("\n╔══════════════════════════╗")
@@ -208,6 +506,9 @@ class Biblioteca:
                 print("║ 5️⃣ Devolver libro       ║")
 
             print("║ 6️⃣ Mostrar usuarios     ║")
+            print("║ 7️⃣ Buscar               ║")
+            print("║ 8️⃣ Estadísticas         ║")
+            print("║ 9️⃣ Guardar datos        ║")
             print("║ 0️⃣ Salir                ║")
             print("╚══════════════════════════╝")
 
@@ -222,70 +523,299 @@ class Biblioteca:
                 telefono = input("Ingrese número de teléfono: ").strip()
                 correo = input("Ingrese correo electrónico: ").strip()
 
-                if self.validar_telefono(telefono) and self.validar_correo(correo):
-                    try:
-                        usuario = Usuario(nombre, telefono, correo)
-                        self.registrar_usuario(usuario)
-                    except ValueError as e:
-                        print(f"Error: {e}")
-                else:
+                try:
+                    usuario = Usuario(nombre, telefono, correo)
+                    exito = self.registrar_usuario(usuario)
+                    if exito:
+                        # Guardar cambios automáticamente
+                        self.guardar_datos()
+                except ValueError as e:
+                    print(f"❌ Error: {e}")
                     print("❌ Registro cancelado debido a datos inválidos.")
 
             elif opcion == "2":
                 titulo = input("Ingrese el título del libro: ").strip()
-                if not titulo:
-                    print("❌ Error: El título no puede estar vacío.")
-                    continue
-                    
                 autor = input("Ingrese el autor: ").strip()
                 isbn = input("Ingrese el ISBN: ").strip()
 
-                libro = Libro(titulo, autor, isbn)
-                self.agregar_libro(libro)
+                try:
+                    libro = Libro(titulo, autor, isbn)
+                    exito = self.agregar_libro(libro)
+                    if exito:
+                        # Guardar cambios automáticamente
+                        self.guardar_datos()
+                except ValueError as e:
+                    print(f"❌ Error: {e}")
+                    print("❌ Registro de libro cancelado debido a datos inválidos.")
 
             elif opcion == "3":
                 self.mostrar_libros_disponibles()
 
             elif opcion == "4" and len(self.usuarios) > 0 and len(self.libros) > 0:
-                print("\n📖 Libros disponibles:")
-                for i, libro in enumerate(self.libros, 1):
-                    print(f"{i}. {libro}")
-
+                # Mostrar usuarios disponibles
+                self.mostrar_usuarios()
+                if not self.usuarios:
+                    continue
+                    
+                indice_usuario = input("Seleccione el número de usuario: ")
                 try:
-                    libro_idx = int(input("Seleccione el número del libro a prestar: ")) - 1
-                    if 0 <= libro_idx < len(self.libros):
-                        usuario_correo = input("Ingrese el correo del usuario: ").strip()
-                        usuario = self.buscar_usuario("correo", usuario_correo)
-                        if usuario:
-                            self.prestar_libro(usuario, self.libros[libro_idx])
-                        else:
-                            print("❌ Usuario no encontrado.")
-                    else:
-                        print("❌ Número de libro inválido.")
-                except ValueError:
-                    print("❌ Entrada no válida. Ingrese un número.")
+                    indice_usuario = int(indice_usuario)
+                    if indice_usuario < 1 or indice_usuario > len(self.usuarios):
+                        print("❌ Selección inválida.")
+                        continue
+                    usuario_seleccionado = list(self.usuarios.values())[indice_usuario - 1]
+                except (ValueError, IndexError):
+                    print("❌ Selección inválida.")
+                    continue
+                
+                # Filtrar y mostrar solo libros disponibles
+                libros_disponibles = [libro for libro in self.libros.values() if libro.disponible]
+                if not libros_disponibles:
+                    print("📚 No hay libros disponibles para préstamo.")
+                    continue
+                    
+                print("\n📖 Libros disponibles:")
+                for i, libro in enumerate(libros_disponibles, 1):
+                    print(f"{i}. {libro}")
+                    
+                indice_libro = input("Seleccione el número de libro: ")
+                try:
+                    indice_libro = int(indice_libro)
+                    if indice_libro < 1 or indice_libro > len(libros_disponibles):
+                        print("❌ Selección inválida.")
+                        continue
+                    libro_seleccionado = libros_disponibles[indice_libro - 1]
+                except (ValueError, IndexError):
+                    print("❌ Selección inválida.")
+                    continue
+                
+                exito = self.prestar_libro(usuario_seleccionado, libro_seleccionado)
+                if exito:
+                    # Guardar cambios automáticamente
+                    self.guardar_datos()
 
             elif opcion == "5" and len(self.prestamos) > 0:
-                print("\n📚 Libros prestados:")
-                for i, prestamo in enumerate(self.prestamos, 1):
-                    print(f"{i}. {prestamo.libro} (Prestado a: {prestamo.usuario.nombre})")
-
+                # Primero seleccionar usuario con préstamos activos
+                usuarios_con_prestamos = [usuario for usuario in self.usuarios.values() if usuario.libros_prestados]
+                if not usuarios_con_prestamos:
+                    print("❌ No hay préstamos activos.")
+                    continue
+                    
+                print("\n👤 Usuarios con préstamos activos:")
+                for i, usuario in enumerate(usuarios_con_prestamos, 1):
+                    print(f"{i}. {usuario}")
+                    
+                indice_usuario = input("Seleccione el número de usuario: ")
                 try:
-                    prestamo_idx = int(input("Seleccione el número del préstamo a devolver: ")) - 1
-                    if 0 <= prestamo_idx < len(self.prestamos):
-                        prestamo = self.prestamos[prestamo_idx]
-                        self.devolver_libro(prestamo.usuario, prestamo.libro)
-                    else:
-                        print("❌ Número de préstamo inválido.")
-                except ValueError:
-                    print("❌ Entrada no válida. Ingrese un número.")
+                    indice_usuario = int(indice_usuario)
+                    if indice_usuario < 1 or indice_usuario > len(usuarios_con_prestamos):
+                        print("❌ Selección inválida.")
+                        continue
+                    usuario_seleccionado = usuarios_con_prestamos[indice_usuario - 1]
+                except (ValueError, IndexError):
+                    print("❌ Selección inválida.")
+                    continue
+                
+                # Mostrar libros prestados del usuario
+                if not usuario_seleccionado.libros_prestados:
+                    print(f"❌ {usuario_seleccionado.nombre} no tiene libros prestados.")
+                    continue
+                    
+                print(f"\n📚 Libros prestados a {usuario_seleccionado.nombre}:")
+                for i, libro in enumerate(usuario_seleccionado.libros_prestados, 1):
+                    print(f"{i}. {libro}")
+                    
+                indice_libro = input("Seleccione el número de libro a devolver: ")
+                try:
+                    indice_libro = int(indice_libro)
+                    if indice_libro < 1 or indice_libro > len(usuario_seleccionado.libros_prestados):
+                        print("❌ Selección inválida.")
+                        continue
+                    libro_seleccionado = usuario_seleccionado.libros_prestados[indice_libro - 1]
+                except (ValueError, IndexError):
+                    print("❌ Selección inválida.")
+                    continue
+                
+                exito = self.devolver_libro(usuario_seleccionado, libro_seleccionado)
+                if exito:
+                    # Guardar cambios automáticamente
+                    self.guardar_datos()
 
             elif opcion == "6":
                 self.mostrar_usuarios()
+            
+            elif opcion == "7":
+                print("\n🔍 Opciones de búsqueda:")
+                print("1. Buscar usuario")
+                print("2. Buscar libro")
+                print("3. Búsqueda por prefijo (usando árboles)")
+                opcion_busqueda = input("Seleccione una opción: ")
+                
+                if opcion_busqueda == "1":
+                    print("\n👤 Criterios de búsqueda de usuario:")
+                    print("1. Por nombre")
+                    print("2. Por correo")
+                    print("3. Por teléfono")
+                    criterio = input("Seleccione un criterio: ")
+                    
+                    criterio_map = {"1": "nombre", "2": "correo", "3": "telefono"}
+                    if criterio not in criterio_map:
+                        print("❌ Criterio inválido.")
+                        continue
+                        
+                    valor = input(f"Ingrese el {criterio_map[criterio]} a buscar: ").strip()
+                    if not valor:
+                        print("❌ El valor de búsqueda no puede estar vacío.")
+                        continue
+                        
+                    usuario = self.buscar_usuario(criterio_map[criterio], valor)
+                    if usuario:
+                        print(f"\n✅ Usuario encontrado:\n{usuario}")
+                    else:
+                        print("❌ No se encontró ningún usuario con ese criterio.")
+                        
+                elif opcion_busqueda == "2":
+                    print("\n📚 Criterios de búsqueda de libro:")
+                    print("1. Por título")
+                    print("2. Por autor")
+                    print("3. Por ISBN")
+                    criterio = input("Seleccione un criterio: ")
+                    
+                    criterio_map = {"1": "titulo", "2": "autor", "3": "isbn"}
+                    if criterio not in criterio_map:
+                        print("❌ Criterio inválido.")
+                        continue
+                        
+                    valor = input(f"Ingrese el {criterio_map[criterio]} a buscar: ").strip()
+                    if not valor:
+                        print("❌ El valor de búsqueda no puede estar vacío.")
+                        continue
+                        
+                    libros = self.buscar_libro(criterio_map[criterio], valor)
+                    if libros:
+                        print(f"\n✅ Se encontraron {len(libros)} libro(s):")
+                        for i, libro in enumerate(libros, 1):
+                            print(f"{i}. {libro}")
+                    else:
+                        print("❌ No se encontró ningún libro con ese criterio.")
+                
+                elif opcion_busqueda == "3":
+                    print("\n🌳 Búsqueda por prefijo (usando árboles binarios):")
+                    print("1. Títulos de libros que comienzan con...")
+                    print("2. Autores que comienzan con...")
+                    print("3. Nombres de usuarios que comienzan con...")
+                    tipo_prefijo = input("Seleccione una opción: ")
+                    
+                    if tipo_prefijo == "1":
+                        prefijo = input("Ingrese el prefijo del título: ").strip().lower()
+                        if not prefijo:
+                            print("❌ El prefijo no puede estar vacío.")
+                            continue
+                            
+                        # Búsqueda en el árbol de títulos
+                        isbn_list = self.arbol_titulos.buscar_por_prefijo(prefijo)
+                        if isbn_list:
+                            print(f"\n✅ Libros con títulos que comienzan con '{prefijo}':")
+                            libros_mostrados = []
+                            contador = 1
+                            
+                            # Procesar los resultados del árbol
+                            for isbn_o_lista in isbn_list:
+                                if isinstance(isbn_o_lista, list):
+                                    for isbn in isbn_o_lista:
+                                        if isbn in self.libros and self.libros[isbn] not in libros_mostrados:
+                                            print(f"{contador}. {self.libros[isbn]}")
+                                            libros_mostrados.append(self.libros[isbn])
+                                            contador += 1
+                                elif isbn_o_lista in self.libros and self.libros[isbn_o_lista] not in libros_mostrados:
+                                    print(f"{contador}. {self.libros[isbn_o_lista]}")
+                                    libros_mostrados.append(self.libros[isbn_o_lista])
+                                    contador += 1
+                            
+                            if not libros_mostrados:
+                                print(f"❌ No se encontraron libros con títulos que comiencen con '{prefijo}'.")
+                        else:
+                            print(f"❌ No se encontraron libros con títulos que comiencen con '{prefijo}'.")
+                            
+                    elif tipo_prefijo == "2":
+                        prefijo = input("Ingrese el prefijo del autor: ").strip().lower()
+                        if not prefijo:
+                            print("❌ El prefijo no puede estar vacío.")
+                            continue
+                            
+                        # Búsqueda en el árbol de autores
+                        isbn_list = self.arbol_autores.buscar_por_prefijo(prefijo)
+                        if isbn_list:
+                            print(f"\n✅ Libros con autores que comienzan con '{prefijo}':")
+                            libros_mostrados = []
+                            contador = 1
+                            
+                            # Procesar los resultados del árbol
+                            for isbn_o_lista in isbn_list:
+                                if isinstance(isbn_o_lista, list):
+                                    for isbn in isbn_o_lista:
+                                        if isbn in self.libros and self.libros[isbn] not in libros_mostrados:
+                                            print(f"{contador}. {self.libros[isbn]}")
+                                            libros_mostrados.append(self.libros[isbn])
+                                            contador += 1
+                                elif isbn_o_lista in self.libros and self.libros[isbn_o_lista] not in libros_mostrados:
+                                    print(f"{contador}. {self.libros[isbn_o_lista]}")
+                                    libros_mostrados.append(self.libros[isbn_o_lista])
+                                    contador += 1
+                            
+                            if not libros_mostrados:
+                                print(f"❌ No se encontraron libros con autores que comiencen con '{prefijo}'.")
+                        else:
+                            print(f"❌ No se encontraron libros con autores que comiencen con '{prefijo}'.")
+                            
+                    elif tipo_prefijo == "3":
+                        prefijo = input("Ingrese el prefijo del nombre: ").strip().lower()
+                        if not prefijo:
+                            print("❌ El prefijo no puede estar vacío.")
+                            continue
+                            
+                        # Búsqueda en el árbol de nombres
+                        correos_list = self.arbol_nombres.buscar_por_prefijo(prefijo)
+                        if correos_list:
+                            print(f"\n✅ Usuarios con nombres que comienzan con '{prefijo}':")
+                            usuarios_mostrados = []
+                            contador = 1
+                            
+                            # Procesar los resultados del árbol
+                            for correo_o_lista in correos_list:
+                                if isinstance(correo_o_lista, list):
+                                    for correo in correo_o_lista:
+                                        if correo in self.usuarios and self.usuarios[correo] not in usuarios_mostrados:
+                                            print(f"{contador}. {self.usuarios[correo]}")
+                                            usuarios_mostrados.append(self.usuarios[correo])
+                                            contador += 1
+                                elif correo_o_lista in self.usuarios and self.usuarios[correo_o_lista] not in usuarios_mostrados:
+                                    print(f"{contador}. {self.usuarios[correo_o_lista]}")
+                                    usuarios_mostrados.append(self.usuarios[correo_o_lista])
+                                    contador += 1
+                            
+                            if not usuarios_mostrados:
+                                print(f"❌ No se encontraron usuarios con nombres que comiencen con '{prefijo}'.")
+                        else:
+                            print(f"❌ No se encontraron usuarios con nombres que comiencen con '{prefijo}'.")
+                            
+                    else:
+                        print("❌ Opción inválida.")
+                
+                else:
+                    print("❌ Opción inválida.")
+                    
+            elif opcion == "8":
+                self.mostrar_estadisticas()
+                
+            elif opcion == "9":
+                self.guardar_datos()
 
             elif opcion == "0":
-                print("👋 ¡Gracias por usar la biblioteca!")
-                return  # Usar return en lugar de break si estamos en una función.
+                # Guardar datos al salir
+                self.guardar_datos()
+                print("👋 ¡Hasta pronto!")
+                break
 
             else:
-                print("❌ Opción inválida. Intente nuevamente.")
+                print("❌ Opción inválida. Por favor, seleccione una opción válida.")
