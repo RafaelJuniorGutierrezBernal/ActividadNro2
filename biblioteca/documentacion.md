@@ -23,10 +23,9 @@
      │   │   ├── Libro.py
      │   │   ├── Prestamo.py
      │   │   └── Usuario.py
-     │   ├── utils/
-     │   │   └── Persistencia.py
+     │   ├
+     │   │   
      │   └── main.py
-     ├── datos/        # Se creará automáticamente en la primera ejecución
      └── documentacion.md
      ```
 
@@ -39,13 +38,8 @@
    - Ejecute el comando: `python src/main.py`
    - En Windows también puede usar: `python src\main.py`
 
-3. **Primera ejecución**:
-   - En la primera ejecución, el sistema creará automáticamente el directorio `datos/` para almacenar la información.
-   - No es necesario realizar ninguna configuración adicional.
-
 ### 1.4 Notas Importantes
 
-- **Persistencia de datos**: Todos los datos se guardan automáticamente en archivos JSON dentro del directorio `datos/`.
 - **Compatibilidad**: El sistema funciona en Windows, macOS y Linux sin modificaciones.
 - **Problemas comunes**:
   - Si aparece un error de "Módulo no encontrado", asegúrese de ejecutar el programa desde el directorio raíz del proyecto.
@@ -91,12 +85,7 @@ El sistema de gestión de biblioteca es una aplicación que permite administrar 
    - Registrar devoluciones
    - Consultar historial de préstamos
 
-4. **Sistema de Persistencia**
-   - Guardar datos en archivos
-   - Cargar datos desde archivos
-   - Mantener la integridad de los datos entre sesiones
-
-5. **Interfaz de Usuario**
+4. **Interfaz de Usuario**
    - Menú interactivo para todas las funcionalidades
    - Búsquedas avanzadas utilizando árboles binarios
    - Visualización de estadísticas
@@ -115,12 +104,7 @@ El sistema de gestión de biblioteca es una aplicación que permite administrar 
    - Interfaz de usuario simple e intuitiva
    - Mensajes de error descriptivos
    - Validación de datos de entrada
-
-4. **Persistencia**
-   - Almacenamiento en archivos JSON para mantener datos entre sesiones
-   - Carga y guardado eficiente de datos
-
-5. **Mantenibilidad**
+4. **Mantenibilidad**
    - Código modular y bien estructurado
    - Clases con responsabilidades bien definidas
    - Documentación completa del código
@@ -279,8 +263,7 @@ La integración de los árboles binarios con el resto del sistema se ha realizad
 
 1. **Capa de Modelo**: Clases `Libro`, `Usuario` y `Prestamo` con métodos para conversión a/desde diccionarios
 2. **Capa de Controlador**: Clase `Biblioteca` que gestiona todas las operaciones usando tanto estructuras lineales como árboles
-3. **Capa de Persistencia**: Clase `Persistencia` que se encarga de guardar/cargar datos en archivos
-4. **Capa de Interface**: Menú interactivo en consola que expone todas las funcionalidades
+3. **Capa de Interface**: Menú interactivo en consola que expone todas las funcionalidades
 
 ### 5.2 Pruebas Realizadas
 
@@ -293,11 +276,6 @@ La integración de los árboles binarios con el resto del sistema se ha realizad
 - Búsqueda exacta por ISBN y verificación de tiempo de respuesta
 - Búsqueda por prefijo de título y autor, comprobando que se retornan todos los resultados relevantes
 - Comparación de rendimiento entre búsquedas en árboles vs. búsquedas lineales
-
-#### Pruebas de Persistencia
-- Guardar datos y verificar que los archivos JSON se crean correctamente
-- Cargar datos y comprobar que los objetos, índices y árboles se reconstruyen adecuadamente
-- Simular fallos y verificar la gestión de errores
 
 ## 6. Optimización y Eficiencia
 
@@ -358,9 +336,7 @@ Se ha implementado un menú interactivo completo que permite acceder a todas las
 ║ 4️⃣ Prestar libro        ║
 ║ 5️⃣ Devolver libro       ║
 ║ 6️⃣ Mostrar usuarios     ║
-║ 7️⃣ Buscar               ║
-║ 8️⃣ Estadísticas         ║
-║ 9️⃣ Guardar datos        ║
+║ 7️⃣ Buscar               ║      
 ║ 0️⃣ Salir                ║
 ╚══════════════════════════╝
 ```
@@ -385,82 +361,12 @@ La opción "Búsqueda por prefijo" permite aprovechar directamente la eficiencia
 3. Nombres de usuarios que comienzan con...
 ```
 
-## 8. Sistema de Persistencia
-
-### 8.1 Almacenamiento en Archivos JSON
-
-Se ha implementado un sistema completo de persistencia que permite guardar y cargar todos los datos de la biblioteca en archivos JSON:
-
-- **libros.json**: Almacena información de todos los libros
-- **usuarios.json**: Almacena información de todos los usuarios
-- **prestamos.json**: Almacena información de todos los préstamos
-- **contadores.json**: Almacena contadores globales (como IDs)
-
-### 8.2 Clases de Serialización
-
-Cada clase del modelo (`Libro`, `Usuario`, `Prestamo`) implementa métodos para convertirse a/desde diccionarios:
-
-```python
-# En la clase Libro
-def to_dict(self):
-    return {
-        "titulo": self.titulo,
-        "autor": self.autor,
-        "isbn": self.isbn,
-        "disponible": self.disponible,
-        # ...
-    }
-
-@classmethod
-def from_dict(cls, datos):
-    # Crea un objeto Libro a partir de un diccionario
-    # ...
-```
-
-### 8.3 Gestión de Persistencia
-
-La clase `Persistencia` se encarga de todas las operaciones de guardado/carga:
-
-```python
-class Persistencia:
-    def __init__(self, directorio_datos="datos"):
-        # Inicializar rutas de archivos
-        # ...
-    
-    def guardar_biblioteca(self, biblioteca):
-        # Guardar todos los datos en archivos JSON
-        # ...
-    
-    def cargar_biblioteca(self, biblioteca):
-        # Cargar datos desde archivos JSON
-        # Reconstruir índices y árboles
-        # ...
-```
-
-### 8.4 Reconstrucción de Estructuras
-
-Al cargar datos, se reconstruyen tanto los índices como los árboles:
-
-```python
-def _reconstruir_indices(self, biblioteca):
-    # Limpiar índices y árboles existentes
-    # ...
-    
-    # Reconstruir índices y árboles para libros
-    for libro in biblioteca.libros.values():
-        biblioteca._actualizar_indices_libro(libro)
-    
-    # Reconstruir índices y árboles para usuarios
-    # ...
-```
-
 ## 9. Conclusiones
 
 ### 9.1 Logros del Proyecto
 
 - Implementación exitosa de árboles binarios de búsqueda AVL para mejorar la eficiencia de las búsquedas
 - Integración completa con el sistema de gestión de biblioteca existente
-- Desarrollo de un sistema de persistencia robusto para mantener los datos entre sesiones
 - Creación de una interfaz de usuario mejorada con nuevas opciones de búsqueda
 
 ### 9.2 Beneficios de Usar Árboles

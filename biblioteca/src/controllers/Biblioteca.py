@@ -2,10 +2,14 @@ import re
 import unicodedata
 from datetime import datetime
 from models.ArbolBinario import ArbolBinario
-from utils.Persistencia import Persistencia
+from models.Libro import Libro # Agregado para asegurar que Libro esté disponible para isinstance
+from models.Usuario import Usuario # Agregado para asegurar que Usuario esté disponible para isinstance
+from models.Prestamo import Prestamo # Agregado para asegurar que Prestamo esté disponible para isinstance
+
 
 class Biblioteca:
-    def __init__(self, cargar_datos=True):
+    # Eliminado el parámetro cargar_datos ya que no hay persistencia para cargar
+    def __init__(self):
         # Cambio de listas a diccionarios
         self.libros = {}  # ISBN como clave
         self.usuarios = {}  # Correo como clave
@@ -23,13 +27,6 @@ class Biblioteca:
         self.arbol_correos = ArbolBinario()  # Árbol ordenado por correo
         self.arbol_telefonos = ArbolBinario() # Árbol ordenado por teléfono
         self.id_prestamo = 0  # Contador para generar IDs únicos
-        
-        # Sistema de persistencia
-        self.persistencia = Persistencia()
-        
-        # Cargar datos si es necesario
-        if cargar_datos:
-            self.cargar_datos()
 
     def normalizar_texto(self, texto):
         """Convierte el texto a minúsculas y elimina tildes para búsquedas."""
@@ -441,26 +438,16 @@ class Biblioteca:
             
         return []
         
-    def guardar_datos(self):
-        """Guarda todos los datos de la biblioteca en archivos."""
-        print("Guardando datos de la biblioteca...")
-        exito = self.persistencia.guardar_biblioteca(self)
-        if exito:
-            print("✅ Datos guardados correctamente.")
-        else:
-            print("❌ Error al guardar los datos.")
-        return exito
+    # ELIMINADO: Este bloque de código estaba fuera de cualquier método y usaba persistencia.
+    # """Guarda todos los datos de la biblioteca en archivos."""
+    # print("Guardando datos de la biblioteca...")
+    # exito = self.persistencia.guardar_biblioteca(self)
+    # if exito:
+    #     print("✅ Datos guardados correctamente.")
+    # else:
+    #     print("❌ Error al guardar los datos.")
+    # return exito
     
-    def cargar_datos(self):
-        """Carga todos los datos de la biblioteca desde archivos."""
-        print("Cargando datos de la biblioteca...")
-        exito = self.persistencia.cargar_biblioteca(self)
-        if exito:
-            print("✅ Datos cargados correctamente.")
-        else:
-            print("ℹ️ No se encontraron datos previos o hubo un error al cargarlos.")
-        return exito
-        
     def mostrar_estadisticas(self):
         """Muestra estadísticas sobre los datos de la biblioteca."""
         total_libros = len(self.libros)
@@ -488,28 +475,24 @@ class Biblioteca:
         from models.Libro import Libro
         from models.Usuario import Usuario
 
-        # Cargar datos al iniciar
-        self.cargar_datos()
-
         while True:
             print("\n╔══════════════════════════╗")
-            print("║ 📚  BIBLIOTECA VIRTUAL   ║")
+            print("║ 📚 BIBLIOTECA VIRTUAL      ║")
             print("╠══════════════════════════╣")
-            print("║ 1️⃣ Registrar usuario    ║")
-            print("║ 2️⃣ Agregar libro        ║")
-            print("║ 3️⃣ Consultar libros     ║")
+            print("║1️⃣ Registrar usuario         ║")
+            print("║2️⃣ Agregar libro             ║")
+            print("║3️⃣ Consultar libros          ║")
 
             if len(self.usuarios) > 0 and len(self.libros) > 0:
-                print("║ 4️⃣ Prestar libro        ║")
+                print("4️⃣ Prestar libro             ║")
 
             if len(self.prestamos) > 0:
-                print("║ 5️⃣ Devolver libro       ║")
+                print("5️⃣ Devolver libro           ║")
 
-            print("║ 6️⃣ Mostrar usuarios     ║")
-            print("║ 7️⃣ Buscar               ║")
-            print("║ 8️⃣ Estadísticas         ║")
-            print("║ 9️⃣ Guardar datos        ║")
-            print("║ 0️⃣ Salir                ║")
+            print("║6️⃣ Mostrar usuarios         ║")
+            print("║7️⃣ Buscar                   ║")
+            print("║8️⃣ Estadísticas             ║")
+            print("║0️⃣ Salir                    ║") 
             print("╚══════════════════════════╝")
 
             opcion = input("Seleccione una opción: ")
@@ -526,9 +509,6 @@ class Biblioteca:
                 try:
                     usuario = Usuario(nombre, telefono, correo)
                     exito = self.registrar_usuario(usuario)
-                    if exito:
-                        # Guardar cambios automáticamente
-                        self.guardar_datos()
                 except ValueError as e:
                     print(f"❌ Error: {e}")
                     print("❌ Registro cancelado debido a datos inválidos.")
@@ -541,9 +521,6 @@ class Biblioteca:
                 try:
                     libro = Libro(titulo, autor, isbn)
                     exito = self.agregar_libro(libro)
-                    if exito:
-                        # Guardar cambios automáticamente
-                        self.guardar_datos()
                 except ValueError as e:
                     print(f"❌ Error: {e}")
                     print("❌ Registro de libro cancelado debido a datos inválidos.")
@@ -591,8 +568,7 @@ class Biblioteca:
                 
                 exito = self.prestar_libro(usuario_seleccionado, libro_seleccionado)
                 if exito:
-                    # Guardar cambios automáticamente
-                    self.guardar_datos()
+                    print("✅ Libro prestado exitosamente.")
 
             elif opcion == "5" and len(self.prestamos) > 0:
                 # Primero seleccionar usuario con préstamos activos
@@ -638,8 +614,7 @@ class Biblioteca:
                 
                 exito = self.devolver_libro(usuario_seleccionado, libro_seleccionado)
                 if exito:
-                    # Guardar cambios automáticamente
-                    self.guardar_datos()
+                    print("✅ Libro devuelto exitosamente.")
 
             elif opcion == "6":
                 self.mostrar_usuarios()
@@ -724,19 +699,16 @@ class Biblioteca:
                                 if isinstance(isbn_o_lista, list):
                                     for isbn in isbn_o_lista:
                                         if isbn in self.libros and self.libros[isbn] not in libros_mostrados:
-                                            print(f"{contador}. {self.libros[isbn]}")
                                             libros_mostrados.append(self.libros[isbn])
-                                            contador += 1
-                                elif isbn_o_lista in self.libros and self.libros[isbn_o_lista] not in libros_mostrados:
-                                    print(f"{contador}. {self.libros[isbn_o_lista]}")
-                                    libros_mostrados.append(self.libros[isbn_o_lista])
-                                    contador += 1
+                                else: # Es un solo ISBN
+                                    if isbn_o_lista in self.libros and self.libros[isbn_o_lista] not in libros_mostrados:
+                                        libros_mostrados.append(self.libros[isbn_o_lista])
                             
-                            if not libros_mostrados:
-                                print(f"❌ No se encontraron libros con títulos que comiencen con '{prefijo}'.")
+                            for i, libro in enumerate(libros_mostrados, 1):
+                                print(f"{i}. {libro}")
                         else:
-                            print(f"❌ No se encontraron libros con títulos que comiencen con '{prefijo}'.")
-                            
+                            print("❌ No se encontraron libros con ese prefijo de título.")
+
                     elif tipo_prefijo == "2":
                         prefijo = input("Ingrese el prefijo del autor: ").strip().lower()
                         if not prefijo:
@@ -746,76 +718,56 @@ class Biblioteca:
                         # Búsqueda en el árbol de autores
                         isbn_list = self.arbol_autores.buscar_por_prefijo(prefijo)
                         if isbn_list:
-                            print(f"\n✅ Libros con autores que comienzan con '{prefijo}':")
+                            print(f"\n✅ Libros de autores que comienzan con '{prefijo}':")
                             libros_mostrados = []
-                            contador = 1
-                            
-                            # Procesar los resultados del árbol
                             for isbn_o_lista in isbn_list:
                                 if isinstance(isbn_o_lista, list):
                                     for isbn in isbn_o_lista:
                                         if isbn in self.libros and self.libros[isbn] not in libros_mostrados:
-                                            print(f"{contador}. {self.libros[isbn]}")
                                             libros_mostrados.append(self.libros[isbn])
-                                            contador += 1
-                                elif isbn_o_lista in self.libros and self.libros[isbn_o_lista] not in libros_mostrados:
-                                    print(f"{contador}. {self.libros[isbn_o_lista]}")
-                                    libros_mostrados.append(self.libros[isbn_o_lista])
-                                    contador += 1
-                            
-                            if not libros_mostrados:
-                                print(f"❌ No se encontraron libros con autores que comiencen con '{prefijo}'.")
+                                else: # Es un solo ISBN
+                                    if isbn_o_lista in self.libros and self.libros[isbn_o_lista] not in libros_mostrados:
+                                        libros_mostrados.append(self.libros[isbn_o_lista])
+
+                            for i, libro in enumerate(libros_mostrados, 1):
+                                print(f"{i}. {libro}")
                         else:
-                            print(f"❌ No se encontraron libros con autores que comiencen con '{prefijo}'.")
-                            
+                            print("❌ No se encontraron libros de autores con ese prefijo.")
+
                     elif tipo_prefijo == "3":
-                        prefijo = input("Ingrese el prefijo del nombre: ").strip().lower()
+                        prefijo = input("Ingrese el prefijo del nombre de usuario: ").strip().lower()
                         if not prefijo:
                             print("❌ El prefijo no puede estar vacío.")
                             continue
                             
-                        # Búsqueda en el árbol de nombres
+                        # Búsqueda en el árbol de nombres de usuarios
                         correos_list = self.arbol_nombres.buscar_por_prefijo(prefijo)
                         if correos_list:
-                            print(f"\n✅ Usuarios con nombres que comienzan con '{prefijo}':")
+                            print(f"\n✅ Usuarios cuyos nombres comienzan con '{prefijo}':")
                             usuarios_mostrados = []
-                            contador = 1
-                            
-                            # Procesar los resultados del árbol
                             for correo_o_lista in correos_list:
                                 if isinstance(correo_o_lista, list):
                                     for correo in correo_o_lista:
                                         if correo in self.usuarios and self.usuarios[correo] not in usuarios_mostrados:
-                                            print(f"{contador}. {self.usuarios[correo]}")
                                             usuarios_mostrados.append(self.usuarios[correo])
-                                            contador += 1
-                                elif correo_o_lista in self.usuarios and self.usuarios[correo_o_lista] not in usuarios_mostrados:
-                                    print(f"{contador}. {self.usuarios[correo_o_lista]}")
-                                    usuarios_mostrados.append(self.usuarios[correo_o_lista])
-                                    contador += 1
+                                else: # Es un solo correo
+                                    if correo_o_lista in self.usuarios and self.usuarios[correo_o_lista] not in usuarios_mostrados:
+                                        usuarios_mostrados.append(self.usuarios[correo_o_lista])
                             
-                            if not usuarios_mostrados:
-                                print(f"❌ No se encontraron usuarios con nombres que comiencen con '{prefijo}'.")
+                            for i, usuario in enumerate(usuarios_mostrados, 1):
+                                print(f"{i}. {usuario}")
                         else:
-                            print(f"❌ No se encontraron usuarios con nombres que comiencen con '{prefijo}'.")
-                            
+                            print("❌ No se encontraron usuarios con ese prefijo de nombre.")
                     else:
-                        print("❌ Opción inválida.")
-                
+                        print("❌ Opción de búsqueda por prefijo inválida.")
                 else:
-                    print("❌ Opción inválida.")
-                    
+                    print("❌ Opción de búsqueda inválida.")
+
             elif opcion == "8":
                 self.mostrar_estadisticas()
-                
-            elif opcion == "9":
-                self.guardar_datos()
 
             elif opcion == "0":
-                # Guardar datos al salir
-                self.guardar_datos()
-                print("👋 ¡Hasta pronto!")
+                print("👋 ¡Hasta luego!")
                 break
-
             else:
-                print("❌ Opción inválida. Por favor, seleccione una opción válida.")
+                print("❌ Opción inválida. Por favor, intente de nuevo.")
