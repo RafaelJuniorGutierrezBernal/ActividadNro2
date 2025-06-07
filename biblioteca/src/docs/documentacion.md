@@ -91,3 +91,13 @@ Ejemplo de Visualización del Grafo de Co-préstamos:
 ```
 ```
 ![alt text](<grafos prueba-1.jpg>)
+
+## Referencias bibliográficas
+
+* Fritelli, V. Guzman, A. Tymoschuk, J. (2020). Algoritmos y estructuras de datos (2a. ed.). Jorge Sarmiento Editor - Universitas. (Págs. 355 - 359).
+
+* Zohonero Martínez, I. Joyanes Aguilar, L. (2008). Estructuras de datos en Java.. McGraw-Hill, España. (Págs. 456 - 485).
+
+* Flórez Rueda, R. (2005). Algoritmos con estructura de datos y programación orientada a objetos. Banco de la República, Luis Ángel Arango.
+
+* Sánchez Juárez, J. (2013). Libro digital Estructuras de Datos. Libre Edición.
