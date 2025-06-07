@@ -82,12 +82,62 @@
 - **requirements.txt**: Incluir todas las dependencias necesarias.
 - **README**: Explicar instalación, ejecución y pruebas.
 
-## 5. Notas adicionales
-- El sistema está diseñado para ser modular y fácilmente extensible.
-- Se recomienda mantener las pruebas actualizadas y ampliarlas para cubrir casos límite.
-- Si el sistema crece, considerar autenticación y control de acceso.
+## 5. Análisis de Requerimientos y Selección de Grafos
+
+### 5.1 Análisis de Requerimientos
+El análisis de los requerimientos del sistema bibliotecario de entregas anteriores reveló la necesidad de mejorar la eficiencia en las interacciones entre usuarios y libros. Los grafos se identificaron como una solución óptima para modelar estas relaciones debido a:
+
+1. **Requerimientos Adicionales con Grafos**:
+   - Modelado de relaciones de co-préstamos entre libros
+   - Identificación de patrones de lectura entre usuarios
+   - Generación de recomendaciones basadas en préstamos históricos
+   - Análisis de popularidad y tendencias de lectura
+   - Optimización de la ubicación física de libros en la biblioteca
+
+2. **Beneficios de la Implementación con Grafos**:
+   - Mejor visualización de relaciones complejas
+   - Análisis eficiente de patrones de uso
+   - Capacidad de realizar búsquedas y recomendaciones más precisas
+   - Optimización del tiempo de respuesta en consultas complejas
+   - Facilidad para escalar el sistema con nuevas funcionalidades
+
+### 5.2 Selección de Tipo de Grafo
+
+#### 5.2.1 Tipo de Grafo Seleccionado: Grafo No Dirigido Ponderado
+
+Se optó por implementar un grafo no dirigido ponderado por las siguientes razones:
+
+1. **Justificación de Grafo No Dirigido**:
+   - Las relaciones entre libros y usuarios son bidireccionales
+   - Un usuario puede prestar múltiples libros
+   - Un libro puede ser prestado por múltiples usuarios
+   - No existe una jerarquía natural en las relaciones
+   - Facilita el análisis de comunidades y patrones
+
+2. **Justificación de Grafo Ponderado**:
+   - Los pesos representan la frecuencia de co-préstamos
+   - Permite medir la intensidad de las relaciones
+   - Facilita la generación de recomendaciones más precisas
+   - Ayuda a identificar patrones de uso más relevantes
+   - Permite priorizar relaciones más significativas
+
+3. **Ventajas de la Implementación**:
+   - Mejor representación de la realidad del sistema
+   - Mayor flexibilidad en el análisis de datos
+   - Capacidad de realizar análisis estadísticos
+   - Facilidad para implementar algoritmos de recomendación
+   - Optimización del rendimiento en consultas complejas
+
+## 6. Conclusiones Generales
+
+El proyecto ha logrado establecer un sistema de gestión de biblioteca funcional, capaz de manejar libros, usuarios, préstamos y devoluciones. Se ha implementado un robusto gestor de grafos para analizar relaciones entre libros y usuarios, permitiendo la generación de recomendaciones basadas en co-préstamos. La estructura modular y el enfoque en la separación de responsabilidades facilitan la mantenibilidad y la futura expansión del sistema.
+
+Se han abordado y resuelto diversos desafíos, como la persistencia de datos, la validación de entradas, la corrección de errores en expresiones regulares y la optimización de las pruebas unitarias. La depuración de los tests, en particular, aseguró la estabilidad y fiabilidad del código, garantizando que el sistema se comporte como se espera bajo diferentes escenarios.
+
+A pesar de las mejoras significativas, siempre hay áreas para futuras optimizaciones. Se recomienda continuar refinando los algoritmos de recomendación, explorando opciones para una interfaz de usuario más interactiva y escalando la arquitectura para manejar un mayor volumen de datos y usuarios.
 
 Ejemplo de Visualización del Grafo de Co-préstamos:
+
 ```
 ```
 ![alt text](<grafos prueba-1.jpg>)

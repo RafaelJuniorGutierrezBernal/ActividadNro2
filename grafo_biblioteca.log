@@ -1,0 +1,8 @@
+2025-06-07 15:09:22,945 - GestorGrafoBiblioteca - INFO - Construyendo grafo de co-préstamos...
+2025-06-07 15:09:22,945 - GestorGrafoBiblioteca - INFO - Grafo de co-préstamos construido con 10 nodos y 7 aristas
+2025-06-07 15:09:26,597 - GestorGrafoBiblioteca - INFO - El usuario usuario4@test.com no tiene libros prestados actualmente.
+2025-06-07 15:09:30,394 - GestorGrafoBiblioteca - INFO - Libro 'Cien Años de Soledad' (ISBN: 111) agregado.
+2025-06-07 15:09:30,394 - GestorGrafoBiblioteca - INFO - Libro 'Rayuela' (ISBN: 222) agregado.
+2025-06-07 15:09:30,394 - GestorGrafoBiblioteca - INFO - Libro 'Pedro Páramo' (ISBN: 333) agregado.
+2025-06-07 15:09:30,418 - GestorGrafoBiblioteca - INFO - Usuario 'Lector Prueba' (Correo: lector@correo.com) agregado.
+2025-06-07 15:09:30,419 - GestorGrafoBiblioteca - INFO - Vinculado usuario 'lector@correo.com' con libro '111'
