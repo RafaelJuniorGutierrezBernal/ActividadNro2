@@ -33,8 +33,9 @@ class Usuario:
     def validar_nombre(nombre):
         if not nombre or not nombre.strip():
             raise ValueError("El nombre no puede estar vacío.")
-        if not re.match(r"^[a-zA-Z\s]+$", nombre):
-            raise ValueError("El nombre debe contener solo letras y espacios.")
+        # Permitir letras latinas con tildes, diéresis, ñ y espacios (compatible con Python)
+        if not re.match(r"^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$", nombre):
+            raise ValueError("El nombre debe contener solo letras y espacios (incluyendo tildes y ñ).")
         return nombre.strip()
 
     @staticmethod

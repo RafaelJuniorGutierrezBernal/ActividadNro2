@@ -352,118 +352,211 @@ class GestorGrafoBiblioteca:
             Dict[str, Any]: Métricas de eficiencia
         """
         try:
+            num_nodos = self.grafo.number_of_nodes()
+            num_aristas = self.grafo.number_of_edges()
+
+            if num_nodos == 0:
+                return {
+                    'numero_nodos': 0,
+                    'numero_aristas': 0,
+                    'densidad': 0.0,
+                    'componentes_conexas': 0,
+                    'grado_promedio': 0.0,
+                    'diametro': float('inf'),
+                    'coeficiente_clustering': 0.0
+                }
+
+            grado_promedio = sum(dict(self.grafo.degree()).values()) / num_nodos
+
+            is_strongly_connected = nx.is_strongly_connected(self.grafo)
+            diametro = nx.diameter(self.grafo) if is_strongly_connected else float('inf')
+            coeficiente_clustering = nx.average_clustering(self.grafo.to_undirected())
+
             return {
-                'numero_nodos': self.grafo.number_of_nodes(),
-                'numero_aristas': self.grafo.number_of_edges(),
+                'numero_nodos': num_nodos,
+                'numero_aristas': num_aristas,
                 'densidad': nx.density(self.grafo),
                 'componentes_conexas': nx.number_weakly_connected_components(self.grafo),
-                'grado_promedio': sum(dict(self.grafo.degree()).values()) / self.grafo.number_of_nodes(),
-                'diametro': nx.diameter(self.grafo) if nx.is_connected(self.grafo.to_undirected()) else float('inf'),
-                'coeficiente_clustering': nx.average_clustering(self.grafo.to_undirected())
+                'grado_promedio': grado_promedio,
+                'diametro': diametro,
+                'coeficiente_clustering': coeficiente_clustering
             }
         except Exception as e:
-            self.logger.error(f"Error al analizar eficiencia: {e}")
+            self.logger.error(f"Error al analizar eficiencia: {e}", exc_info=True)
             return {}
 
-    def visualizar_grafo(self, title: str = "Grafo de la Biblioteca"):
+    def visualizar_grafo(self, tipo_grafo: str = "co-préstamos"):
         """
-        Visualiza el grafo usando Matplotlib con mejoras en la presentación.
+        Visualiza el grafo actual usando matplotlib.
         
         Args:
-            title (str): Título del gráfico
+            tipo_grafo (str): Tipo de grafo a visualizar ("co-préstamos" o "similitud de usuarios")
         """
+        if not self.grafo.number_of_nodes():
+            self.logger.warning("El grafo está vacío. No hay nada que visualizar.")
+            return
+        
         try:
-            if self.grafo.number_of_nodes() == 0:
-                self.logger.warning("El grafo está vacío, no se puede visualizar.")
-                return
-
-            plt.figure(figsize=(15, 12))
-            pos = nx.spring_layout(self.grafo, seed=42, k=1)
-
-            # Configuración de nodos
+            plt.figure(figsize=(12, 8))
+            
+            # Configurar el layout
+            pos = nx.spring_layout(self.grafo, k=1, iterations=50)
+            
+            # Dibujar nodos
             node_colors = []
             node_sizes = []
-            node_labels = {}
-            
-            for node_id, attrs in self.grafo.nodes(data=True):
-                node_type = attrs.get('type', 'desconocido')
-                peso = attrs.get('peso', 1.0)
-                
-                # Asignar colores según tipo
-                if node_type == 'libro':
-                    node_colors.append('skyblue')
-                    node_labels[node_id] = attrs.get('titulo', node_id)[:20] + "..."
-                elif node_type == 'usuario':
-                    node_colors.append('lightgreen')
-                    node_labels[node_id] = attrs.get('nombre', node_id)[:20]
-                elif node_type == 'autor':
-                    node_colors.append('lightcoral')
-                    node_labels[node_id] = attrs.get('nombre', node_id)[:20]
-                elif node_type == 'genero':
-                    node_colors.append('lightyellow')
-                    node_labels[node_id] = attrs.get('nombre', node_id)[:20]
+            for node in self.grafo.nodes():
+                tipo_nodo = self.grafo.nodes[node].get('tipo', '')
+                if tipo_nodo == 'libro':
+                    node_colors.append('lightblue')
+                    node_sizes.append(100 + len(list(self.grafo.neighbors(node))) * 20)
                 else:
-                    node_colors.append('gray')
-                    node_labels[node_id] = node_id.split('_')[0]
-                
-                # Tamaño del nodo basado en su peso
-                node_sizes.append(1000 + (peso * 500))
-
-            # Dibujar nodos
-            nx.draw_networkx_nodes(
-                self.grafo, pos,
-                node_color=node_colors,
-                node_size=node_sizes,
-                alpha=0.9,
-                linewidths=1,
-                edgecolors='black'
-            )
-
-            # Dibujar aristas con pesos
-            edge_weights = [self.grafo[u][v].get('peso', 1.0) for u, v in self.grafo.edges()]
-            nx.draw_networkx_edges(
-                self.grafo, pos,
-                edge_color='darkgray',
-                arrows=True,
-                arrowsize=20,
-                alpha=0.6,
-                width=edge_weights
-            )
-
-            # Etiquetas de nodos
-            nx.draw_networkx_labels(
-                self.grafo, pos,
-                labels=node_labels,
-                font_size=8,
-                font_weight='bold'
-            )
-
-            # Etiquetas de aristas
-            edge_labels = {
-                (u, v): f"{data.get('relation', '')}\n({data.get('peso', 1.0):.1f})"
-                for u, v, data in self.grafo.edges(data=True)
-            }
-            nx.draw_networkx_edge_labels(
-                self.grafo, pos,
-                edge_labels=edge_labels,
-                font_color='blue',
-                font_size=7
-            )
-
-            plt.title(title, size=15)
+                    node_colors.append('lightgreen')
+                    node_sizes.append(100)
+                    
+            nx.draw_networkx_nodes(self.grafo, pos, node_color=node_colors, node_size=node_sizes, alpha=0.7)
+            
+            # Dibujar aristas
+            edge_weights = [self.grafo[u][v]['peso'] for u, v in self.grafo.edges()]
+            nx.draw_networkx_edges(self.grafo, pos, width=edge_weights, alpha=0.5, edge_color='gray')
+            
+            # Dibujar etiquetas
+            labels = {node: self.grafo.nodes[node].get('titulo', node) for node in self.grafo.nodes()}
+            nx.draw_networkx_labels(self.grafo, pos, labels, font_size=8)
+            
+            # Agregar título y leyenda
+            plt.title(f"Grafo de {tipo_grafo}")
+            
+            # Agregar leyenda para los pesos de las aristas
+            if edge_weights:
+                max_weight = max(edge_weights)
+                plt.text(0.02, 0.02, 
+                        f"Grosor de línea indica frecuencia de co-préstamos\nMáximo: {max_weight} préstamos",
+                        transform=plt.gca().transAxes)
+            
             plt.axis('off')
-            
-            # Agregar leyenda
-            tipos = ['Libro', 'Usuario', 'Autor', 'Género']
-            colores = ['skyblue', 'lightgreen', 'lightcoral', 'lightyellow']
-            patches = [plt.Line2D([0], [0], marker='o', color='w', 
-                                markerfacecolor=color, markersize=10, label=tipo)
-                      for color, tipo in zip(colores, tipos)]
-            plt.legend(handles=patches, loc='upper right', bbox_to_anchor=(1.1, 1))
-            
             plt.tight_layout()
             plt.show()
             
         except Exception as e:
             self.logger.error(f"Error al visualizar grafo: {e}")
-            raise 
+            raise
+
+    def construir_grafo_co_prestamos(self, prestamos, libros):
+        """
+        Construye un grafo de co-préstamos donde los nodos son libros y las aristas
+        representan libros que han sido prestados juntos por los mismos usuarios.
+        
+        Args:
+            prestamos (dict): Diccionario de préstamos
+            libros (dict): Diccionario de libros
+        """
+        self.grafo.clear()
+        self.logger.info("Construyendo grafo de co-préstamos...")
+        
+        # Crear nodos para cada libro
+        for isbn, libro in libros.items():
+            node_id = self._get_node_id("libro", isbn)
+            self.grafo.add_node(
+                node_id,
+                tipo="libro",
+                isbn=isbn,
+                titulo=libro.titulo,
+                autor=libro.autor
+            )
+        
+        # Crear diccionario de libros prestados por usuario
+        libros_por_usuario = {}
+        for prestamo in prestamos.values():
+            if prestamo.estado == "Activo":  # Solo considerar préstamos activos
+                usuario = prestamo.usuario.correoU
+                if usuario not in libros_por_usuario:
+                    libros_por_usuario[usuario] = set()
+                libros_por_usuario[usuario].add(prestamo.libro.isbn)
+        
+        # Crear aristas entre libros prestados por el mismo usuario
+        for usuario, libros_prestados in libros_por_usuario.items():
+            libros_list = list(libros_prestados)
+            for i in range(len(libros_list)):
+                for j in range(i + 1, len(libros_list)):
+                    libro1 = libros_list[i]
+                    libro2 = libros_list[j]
+                    
+                    node1 = self._get_node_id("libro", libro1)
+                    node2 = self._get_node_id("libro", libro2)
+                    
+                    # Si ya existe una arista, incrementar el peso
+                    if self.grafo.has_edge(node1, node2):
+                        self.grafo[node1][node2]['peso'] += 1
+                    else:
+                        self.grafo.add_edge(
+                            node1,
+                            node2,
+                            peso=1,
+                            tipo="co-prestamo",
+                            usuarios=[usuario]
+                        )
+        
+        self.logger.info(f"Grafo de co-préstamos construido con {self.grafo.number_of_nodes()} nodos y {self.grafo.number_of_edges()} aristas") 
+
+    def obtener_libros_recomendados(self, correo_usuario: str, biblioteca, top_n: int = 5) -> list:
+        """
+        Obtiene recomendaciones de libros para un usuario basadas en co-préstamos.
+        
+        Args:
+            correo_usuario (str): Correo del usuario
+            biblioteca: Instancia de la clase Biblioteca
+            top_n (int): Número máximo de recomendaciones a devolver
+            
+        Returns:
+            list: Lista de diccionarios con información de libros recomendados
+        """
+        if not self.grafo.number_of_nodes():
+            self.logger.warning("El grafo está vacío. No se pueden generar recomendaciones.")
+            return []
+        
+        # Obtener libros prestados por el usuario
+        usuario = biblioteca.usuarios.get(correo_usuario)
+        if not usuario:
+            self.logger.warning(f"Usuario {correo_usuario} no encontrado.")
+            return []
+        
+        libros_prestados = set()
+        for prestamo in usuario.libros_prestados:
+            if prestamo.estado == "Activo":
+                libros_prestados.add(prestamo.libro.isbn)
+            
+        if not libros_prestados:
+            self.logger.info(f"El usuario {correo_usuario} no tiene libros prestados actualmente.")
+            return []
+        
+        # Calcular puntuación para cada libro no prestado
+        puntuaciones = {}
+        for libro_isbn in biblioteca.libros:
+            if libro_isbn not in libros_prestados and biblioteca.libros[libro_isbn].disponible:
+                puntuacion = 0
+                node_id = self._get_node_id("libro", libro_isbn)
+                
+                # Sumar pesos de aristas con libros prestados por el usuario
+                for libro_prestado in libros_prestados:
+                    node_prestado = self._get_node_id("libro", libro_prestado)
+                    if self.grafo.has_edge(node_prestado, node_id):
+                        puntuacion += self.grafo[node_prestado][node_id]['peso']
+                    if self.grafo.has_edge(node_id, node_prestado):
+                        puntuacion += self.grafo[node_id][node_prestado]['peso']
+                    
+                if puntuacion > 0:
+                    puntuaciones[libro_isbn] = puntuacion
+                
+        # Ordenar libros por puntuación y devolver los top_n
+        libros_recomendados = []
+        for isbn, score in sorted(puntuaciones.items(), key=lambda x: x[1], reverse=True)[:top_n]:
+            libro = biblioteca.libros[isbn]
+            libros_recomendados.append({
+                'isbn': isbn,
+                'titulo': libro.titulo,
+                'autor': libro.autor,
+                'score': score
+            })
+        
+        return libros_recomendados 

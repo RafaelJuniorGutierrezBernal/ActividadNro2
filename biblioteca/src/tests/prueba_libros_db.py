@@ -1,5 +1,10 @@
-from gestor_grafo_mejorado import GestorGrafoBiblioteca
 import os
+import sys
+
+# Añadir el directorio src al path de Python de forma segura
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from gestor_grafo_mejorado import GestorGrafoBiblioteca
 import json
 
 DB_PATH = "prueba_biblioteca_libros.db"

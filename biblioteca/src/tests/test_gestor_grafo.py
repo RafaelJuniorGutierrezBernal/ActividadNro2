@@ -2,7 +2,14 @@ import unittest
 import os
 import tempfile
 from datetime import datetime
-from ..gestor_grafo_mejorado import GestorGrafoBiblioteca
+import sys
+import gc
+import time
+
+# Añadir el directorio src al path de Python de forma segura
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from gestor_grafo_mejorado import GestorGrafoBiblioteca
 
 class TestGestorGrafoBiblioteca(unittest.TestCase):
     def setUp(self):
@@ -15,6 +22,8 @@ class TestGestorGrafoBiblioteca(unittest.TestCase):
     def tearDown(self):
         """Limpieza después de cada prueba."""
         self.gestor = None
+        gc.collect()
+        time.sleep(0.1) # Pequeña pausa para asegurar que el archivo se libere
         os.unlink(self.temp_db.name)
 
     def test_agregar_libro(self):
@@ -132,6 +141,14 @@ class TestGestorGrafoBiblioteca(unittest.TestCase):
         self.gestor.agregar_libro("L1", "Libro 1", "Autor 1")
         self.gestor.agregar_usuario("U1", "Usuario 1")
         self.gestor.vincular_libro_con_usuario("L1", "U1", "PRESTAMO")
+
+        # Añadir más datos para un grafo más complejo
+        self.gestor.agregar_libro("L2", "Libro 2", "Autor 2")
+        self.gestor.agregar_libro("L3", "Libro 3", "Autor 3")
+        self.gestor.agregar_usuario("U2", "Usuario 2")
+        self.gestor.vincular_libro_con_usuario("L2", "U1", "PRESTAMO")
+        self.gestor.vincular_libro_con_usuario("L3", "U2", "PRESTAMO")
+        self.gestor.vincular_libro_con_usuario("L1", "U2", "PRESTAMO") # Co-prestamo
         
         # Obtener métricas
         metricas = self.gestor.analizar_eficiencia()

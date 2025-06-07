@@ -3,7 +3,7 @@ import os
 import sqlite3
 import json
 from datetime import datetime
-from ..gestor_grafo_mejorado import GestorGrafoBiblioteca
+from biblioteca.src.gestor_grafo_mejorado import GestorGrafoBiblioteca
 
 class TestLibrosDatabase(unittest.TestCase):
     def setUp(self):

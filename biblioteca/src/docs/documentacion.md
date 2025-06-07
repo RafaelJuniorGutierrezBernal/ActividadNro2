@@ -86,3 +86,8 @@
 - El sistema está diseñado para ser modular y fácilmente extensible.
 - Se recomienda mantener las pruebas actualizadas y ampliarlas para cubrir casos límite.
 - Si el sistema crece, considerar autenticación y control de acceso.
+
+Ejemplo de Visualización del Grafo de Co-préstamos:
+```
+```
+![alt text](<grafos prueba-1.jpg>)
